@@ -77,3 +77,23 @@ export async function bagToPickup(
   const pickup = await request(app.getHttpServer()).post('/pickup-requests').set(auth).send({ scanId: scan.body.id, ...(opts.reward ? { reward: opts.reward } : {}) });
   return { scan: scan.body, pickup };
 }
+
+/** Takes a bag all the way to a weighed 10 kg shipment. Returns the ids and the weighing answer. */
+export async function bagToWeighed(
+  app: App,
+  customer: Customer,
+  employeeToken: string,
+  materialTypeId: number,
+  opts: { reward?: 'points' | 'cash' } = {},
+) {
+  const { scan, pickup } = await bagToPickup(app, customer, { fillLevel: 0.9, reward: opts.reward });
+  const shipmentId = pickup.body.shipment.id as number;
+  const auth = { Authorization: `Bearer ${employeeToken}` };
+  await request(app.getHttpServer()).post(`/shipments/${shipmentId}/collect`).set(auth).expect(200);
+  const weigh = await request(app.getHttpServer())
+    .post(`/shipments/${shipmentId}/weigh`)
+    .set(auth)
+    .send({ materialTypeId, actualWeightKg: 10, accepted: true })
+    .expect(201);
+  return { scan: scan as { id: number; imageUrl: string }, shipmentId, weighingId: weigh.body.weighing.id as number, weigh: weigh.body };
+}
