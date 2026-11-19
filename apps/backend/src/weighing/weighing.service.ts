@@ -109,16 +109,23 @@ export class WeighingService {
         },
       });
 
-      const award = await this.points.awardForWeighing(tx, {
-        userId: customerId,
-        weighingId: weighing.id,
-        weightKg: weight,
-        pointFactor: material!.pointFactor,
-      });
+      // A business that asked for cash gets a payout figure and no points; everyone else earns points.
+      const cash = shipment.request.reward === 'cash' && shipment.request.scan.user.role === 'business';
+      const payout = cash ? weight.mul(material!.pricePerKg).toDecimalPlaces(2) : null;
+      if (payout) await tx.weighingRecord.update({ where: { id: weighing.id }, data: { payout } });
+
+      const award = cash
+        ? null
+        : await this.points.awardForWeighing(tx, {
+            userId: customerId,
+            weighingId: weighing.id,
+            weightKg: weight,
+            pointFactor: material!.pointFactor,
+          });
 
       await tx.shipment.update({ where: { id: shipmentId }, data: { status: 'weighed' } });
 
-      const pointsText = award && award.points > 0 ? ` You earned ${award.points} points.` : '';
+      const pointsText = payout ? ` Payout due: ${payout.toString()} EGP.` : award && award.points > 0 ? ` You earned ${award.points} points.` : '';
       await this.notifications.notify(
         customerId,
         'Bag weighed',
@@ -129,6 +136,7 @@ export class WeighingService {
       return {
         weighing,
         pointsAwarded: award?.points ?? 0,
+        payout: payout?.toString() ?? null,
         totalPoints: award?.totalPoints,
         level: award?.level,
         leveledUp: award?.leveledUp ?? false,

@@ -59,7 +59,7 @@ export async function registerCustomer(app: App, role: 'citizen' | 'business' = 
 export async function bagToPickup(
   app: App,
   customer: Customer,
-  opts: { fillLevel?: number; contentType?: string; lat?: number; lng?: number } = {},
+  opts: { fillLevel?: number; contentType?: string; lat?: number; lng?: number; reward?: 'points' | 'cash' } = {},
 ) {
   const auth = { Authorization: `Bearer ${customer.token}` };
   const upload = await request(app.getHttpServer()).post('/uploads/image').set(auth).attach('file', TINY_PNG, 'bag.png').expect(201);
@@ -74,6 +74,6 @@ export async function bagToPickup(
       lng: opts.lng ?? 31.23,
     })
     .expect(201);
-  const pickup = await request(app.getHttpServer()).post('/pickup-requests').set(auth).send({ scanId: scan.body.id });
+  const pickup = await request(app.getHttpServer()).post('/pickup-requests').set(auth).send({ scanId: scan.body.id, ...(opts.reward ? { reward: opts.reward } : {}) });
   return { scan: scan.body, pickup };
 }

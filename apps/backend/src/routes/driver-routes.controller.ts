@@ -5,7 +5,7 @@ import { type AuthUser, CurrentUser } from '../auth/auth-user.js';
 import { Roles } from '../auth/roles.decorator.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { DriverRoutesService } from './driver-routes.service.js';
-import { type CollectStopDto, type DriverRoutesDto, collectStopSchema, driverRoutesSchema } from './routes.schemas.js';
+import { type CollectStopDto, type DriverRoutesDto, type StopProofDto, collectStopSchema, driverRoutesSchema, stopProofSchema } from './routes.schemas.js';
 
 @ApiTags('driver')
 @ApiBearerAuth()
@@ -38,5 +38,16 @@ export class DriverRoutesController {
     @Body(new ZodValidationPipe(collectStopSchema)) dto: CollectStopDto,
   ) {
     return this.driverRoutes.collect(user.id, shipmentId, dto.handoverCode);
+  }
+
+  @HttpCode(200)
+  @Post('stops/:shipmentId/proof')
+  @ApiOperation({ summary: 'Attach the photo of a collected bag to its stop' })
+  proof(
+    @CurrentUser() user: AuthUser,
+    @Param('shipmentId', ParseIntPipe) shipmentId: number,
+    @Body(new ZodValidationPipe(stopProofSchema)) dto: StopProofDto,
+  ) {
+    return this.driverRoutes.addProof(user.id, shipmentId, dto.imageUrl);
   }
 }

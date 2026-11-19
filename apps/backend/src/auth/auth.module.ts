@@ -4,6 +4,8 @@ import { JwtModule } from '@nestjs/jwt';
 import type { Env } from '../config/env.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { OtpService } from './otp.service.js';
+import { SmsService } from './sms.service.js';
 
 @Global()
 @Module({
@@ -17,7 +19,7 @@ import { AuthService } from './auth.service.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, OtpService, SmsService],
   exports: [JwtModule],
 })
 export class AuthModule {}

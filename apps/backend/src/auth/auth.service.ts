@@ -5,7 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { LoginDto, RegisterDto } from './auth.schemas.js';
+import type { LoginDto, OtpVerifyDto, RegisterDto } from './auth.schemas.js';
+import { OtpService } from './otp.service.js';
 
 export interface TokenPair {
   accessToken: string;
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService<Env, true>,
+    private readonly otp: OtpService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -79,6 +81,39 @@ export class AuthService {
     }
 
     return { user: this.publicUser(user), ...(await this.issueTokens(user.id, user.role)) };
+  }
+
+  requestOtp(phone: string) {
+    return this.otp.request(phone);
+  }
+
+  /** Signs in with a phone code. A phone with no account becomes a new citizen account. */
+  async signInByPhone(dto: OtpVerifyDto) {
+    await this.otp.verify(dto.phone, dto.code);
+
+    const existing = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
+    if (existing) {
+      if (!existing.isActive) throw new UnauthorizedException('This account is disabled.');
+      return { user: this.publicUser(existing), isNew: false, ...(await this.issueTokens(existing.id, existing.role)) };
+    }
+
+    // No password exists for phone-only accounts; the stored hash is of a random value nobody knows.
+    const passwordHash = await bcrypt.hash(randomBytes(24).toString('base64url'), BCRYPT_COST);
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { name: dto.name ?? 'EcoPlus user', phone: dto.phone, passwordHash, role: 'citizen' },
+      });
+      const firstLevel = await tx.level.findFirst({ orderBy: { minPoints: 'asc' } });
+      if (!firstLevel) {
+        throw new HttpException(
+          { code: 'setup_incomplete', message: 'Levels are not configured yet. Run the seed.' },
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+      await tx.citizenProfile.create({ data: { userId: created.id, levelId: firstLevel.id } });
+      return created;
+    });
+    return { user: this.publicUser(user), isNew: true, ...(await this.issueTokens(user.id, user.role)) };
   }
 
   /** Rotates the refresh token. Presenting an already-used token revokes every session of that user. */

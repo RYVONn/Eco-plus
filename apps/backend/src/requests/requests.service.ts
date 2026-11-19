@@ -4,7 +4,7 @@ import type { AuthUser } from '../auth/auth-user.js';
 import type { Env } from '../config/env.js';
 import { boundingBox, distanceMeters } from '../common/geo.js';
 import { type Pagination, toPage } from '../common/pagination.js';
-import type { RequestChannel, SourceType } from '../generated/prisma/enums.js';
+import type { RequestChannel, RewardChoice, SourceType } from '../generated/prisma/enums.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { generateQrCode } from '../shipments/qr.js';
@@ -16,6 +16,7 @@ const STAFF = ['admin', 'employee'];
 export interface CreateFromScanOptions {
   scanId: number;
   channel: RequestChannel;
+  reward?: RewardChoice;
   /** Set when staff create the request for a customer. */
   createdById?: number;
 }
@@ -70,12 +71,14 @@ export class RequestsService {
       throw new UnprocessableEntityException({ code: 'location_required', message: 'Add the pickup location to the scan or to your profile.' });
     }
 
+    const reward: RewardChoice = sourceType === 'business' && opts.reward === 'cash' ? 'cash' : 'points';
+
     const result = await this.prisma.$transaction(async (tx) => {
       let qrCode = generateQrCode();
       while (await tx.shipment.findUnique({ where: { qrCode }, select: { id: true } })) qrCode = generateQrCode();
 
       const request = await tx.pickupRequest.create({
-        data: { scanId: scan.id, decision, channel: opts.channel, createdById: opts.createdById },
+        data: { scanId: scan.id, decision, channel: opts.channel, createdById: opts.createdById, reward },
       });
       const shipment = await tx.shipment.create({
         data: { requestId: request.id, qrCode, gpsLat, gpsLng, sourceType },

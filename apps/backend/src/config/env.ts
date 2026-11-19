@@ -25,7 +25,28 @@ const envSchema = z.object({
   // Time zone that decides what "today" means for a driver.
   APP_TIMEZONE: z.string().default('Africa/Cairo'),
   // "none" sends nothing, "log" only logs how many phones would get the push. A real FCM sender is not built yet.
-  PUSH_PROVIDER: z.enum(['none', 'log']).default('none'),
+  PUSH_PROVIDER: z.enum(['none', 'log', 'fcm']).default('none'),
+  // Firebase service account JSON as one string. Needed when PUSH_PROVIDER is "fcm".
+  FCM_SERVICE_ACCOUNT_JSON: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  // Phone codes are sent by POSTing {to, text} to this URL (any SMS gateway can sit behind it).
+  SMS_WEBHOOK_URL: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  SMS_WEBHOOK_TOKEN: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  // Development and tests only: every phone code is this value. Refused in production.
+  OTP_DEV_CODE: z
+    .string()
+    .regex(/^[0-9]{6}$/)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   // Days between delivery and the invoice due date.
   INVOICE_DUE_DAYS: z.coerce.number().int().positive().default(30),
   UPLOAD_DIR: z.string().default('./uploads'),
@@ -47,5 +68,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       .join('\n');
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
-  return parsed.data;
+  const env = parsed.data;
+  if (env.NODE_ENV === 'production' && env.OTP_DEV_CODE) throw new Error('Invalid environment configuration:\n  - OTP_DEV_CODE: must not be set in production');
+  if (env.PUSH_PROVIDER === 'fcm' && !env.FCM_SERVICE_ACCOUNT_JSON) throw new Error('Invalid environment configuration:\n  - FCM_SERVICE_ACCOUNT_JSON: required when PUSH_PROVIDER is fcm');
+  return env;
 }
