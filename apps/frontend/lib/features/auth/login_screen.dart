@@ -19,6 +19,18 @@ const _demo = [
 ];
 const _demoPassword = 'Test1234!';
 
+/// Preview accounts open a role with sample data and no server. Added here as each role app is built.
+const _preview = [
+  ('citizen', Icons.person_rounded, 'عميل (معاينة)', 'Citizen (preview)', 'سارة', 'Sara'),
+  ('business', Icons.storefront_rounded, 'بيزنس (معاينة)', 'Business (preview)', 'الكافيه المثال', 'Example Café'),
+  ('buyer', Icons.shopping_cart_rounded, 'مشتري (معاينة)', 'Buyer (preview)', 'مشتري المثال', 'Example Buyer'),
+  ('admin', Icons.admin_panel_settings_rounded, 'أدمن (معاينة)', 'Admin (preview)', 'الأدمن', 'Admin'),
+  ('client_portal', Icons.language_rounded, 'بوابة البيزنس (ويب)', 'Business portal (web)', 'الكافيه المثال', 'Example Café'),
+  ('factory_portal', Icons.factory_rounded, 'بوابة المصنع (ويب)', 'Factory portal (web)', 'مصنع المثال', 'Example Plant'),
+  ('driver', Icons.local_shipping_rounded, 'السواق', 'Driver', 'السواق 1', 'Driver 1'),
+  ('employee', Icons.scale_rounded, 'موظف المخزن', 'Warehouse employee', 'موظف 1', 'Employee 1'),
+];
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -80,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: SizedBox(
                     width: double.infinity,
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const LogoMark(size: 56, animate: true),
+                      const LogoMark(size: 56, animate: true, onDark: true),
                       const SizedBox(height: 34),
                       const Wordmark(size: 40, color: EcoColors.onCanopy).fadeUp(index: 2),
                       const SizedBox(height: 10),
@@ -126,6 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)) : Text(s.login),
                 ).fadeUp(index: 8),
                 const SizedBox(height: 4),
+                Center(child: TextButton(onPressed: () => context.go('/phone'), child: Text(s.ar ? 'ادخل برقم الموبايل' : 'Sign in with phone'))),
                 Center(child: TextButton(onPressed: () => context.go('/register'), child: Text(s.noAccount))),
                 const SizedBox(height: 20),
                 Text(s.tryDemo, style: t.labelLarge?.copyWith(color: c.inkSoft)),
@@ -144,6 +157,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       },
                     ),
                 ]).fadeUp(index: 10),
+                const SizedBox(height: 16),
+                Text(s.ar ? 'معاينة بدون سيرفر' : 'Preview without a server', style: t.labelLarge?.copyWith(color: c.inkSoft)),
+                const SizedBox(height: 10),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final p in _preview)
+                    ActionChip(
+                      avatar: Icon(p.$2, size: 18, color: c.primary),
+                      label: Text(s.ar ? p.$3 : p.$4),
+                      backgroundColor: c.surface,
+                      side: BorderSide(color: c.line),
+                      onPressed: () => ref.read(sessionProvider.notifier).demoLogin(p.$1, s.ar ? p.$5 : p.$6),
+                    ),
+                ]),
               ]),
             ),
           ),

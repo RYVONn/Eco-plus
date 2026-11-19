@@ -2,8 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// EcoPlus brand tokens (source of truth: packages/brand/tokens.json, explained in docs/design/BRAND.md).
-/// Canopy green for trust, Bloom lime for the one action that matters, warm paper so it never feels clinical.
+/// EcoPlus brand tokens, same values as the design (Eco Green, Lime, Ink, Paper). Roles add one accent each.
 class EcoColors {
   const EcoColors._({
     required this.bg,
@@ -22,39 +21,46 @@ class EcoColors {
 
   /// Bloom lime: the same in both themes.
   Color get accent => bloom;
-  Color get onAccent => const Color(0xFF0D1B14);
+  Color get onAccent => const Color(0xFF0D2B22);
 
-  static const bloom = Color(0xFFC8F560);
+  static const bloom = Color(0xFFC9F25A);
+  static const leaf = Color(0xFF52B788);
+  static const mint = Color(0xFFDDF1E7);
+
+  /// Role accents from the design: Driver, Factory and Buyer, Admin.
+  static const driver = Color(0xFFC2410C);
+  static const buyer = Color(0xFF1E6FD9);
+  static const admin = Color(0xFF6D3FE0);
 
   /// Hero panels are always deep canopy with light text, in light and dark mode.
-  static const canopyFrom = Color(0xFF0E4A37);
-  static const canopyTo = Color(0xFF06261C);
-  static const canopyGlow = Color(0xFF1E8A62);
-  static const onCanopy = Color(0xFFEAF6EE);
+  static const canopyFrom = Color(0xFF0B7F5E);
+  static const canopyTo = Color(0xFF0D2B22);
+  static const canopyGlow = Color(0xFF52B788);
+  static const onCanopy = Color(0xFFF3F6F1);
   static const canopyGradient = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [canopyFrom, canopyTo]);
 
   static const light = EcoColors._(
-    bg: Color(0xFFF5F2EA),
+    bg: Color(0xFFF3F6F1),
     surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFECE7DA),
-    ink: Color(0xFF0D1B14),
-    inkSoft: Color(0xFF566660),
-    line: Color(0xFFDFD9C9),
-    primary: Color(0xFF0B3D2E),
+    surfaceAlt: Color(0xFFDDF1E7),
+    ink: Color(0xFF0D2B22),
+    inkSoft: Color(0xFF3E5A50),
+    line: Color(0xFFD9E4DD),
+    primary: Color(0xFF0B7F5E),
     onPrimary: Color(0xFFFFFFFF),
     amber: Color(0xFFA35A0C),
     danger: Color(0xFFC23B33),
   );
 
   static const dark = EcoColors._(
-    bg: Color(0xFF07110C),
-    surface: Color(0xFF0F1D16),
-    surfaceAlt: Color(0xFF17291F),
-    ink: Color(0xFFEAF3EC),
-    inkSoft: Color(0xFF8FA598),
-    line: Color(0xFF223529),
-    primary: Color(0xFF6FE0A6),
-    onPrimary: Color(0xFF05150D),
+    bg: Color(0xFF0D2B22),
+    surface: Color(0xFF123A2E),
+    surfaceAlt: Color(0xFF1A4A3B),
+    ink: Color(0xFFF3F6F1),
+    inkSoft: Color(0xFFA9C4B8),
+    line: Color(0xFF24574A),
+    primary: Color(0xFF52B788),
+    onPrimary: Color(0xFF0D2B22),
     amber: Color(0xFFF0B04A),
     danger: Color(0xFFFF8A80),
   );
@@ -66,7 +72,7 @@ extension EcoTheme on BuildContext {
 
 const kRadius = 22.0;
 /// Package fonts are registered as packages/<package>/<family>.
-const kFont = 'packages/eco_ui/IBMPlexSansArabic';
+const kFont = 'packages/eco_ui/ReadexPro';
 
 /// Motion tokens: short and soft. Things ease out, they never bounce except for celebrations.
 class Motion {
@@ -174,7 +180,7 @@ ThemeData buildTheme(Brightness brightness) {
       height: 70,
       indicatorColor: EcoColors.bloom,
       labelTextStyle: WidgetStatePropertyAll(ts(12, FontWeight.w600)),
-      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? const Color(0xFF0D1B14) : c.inkSoft)),
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? const Color(0xFF0D2B22) : c.inkSoft)),
     ),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: c.surface, surfaceTintColor: Colors.transparent, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28)))),
     dialogTheme: DialogThemeData(backgroundColor: c.surface, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router.dart';
 import 'app/strings.dart';
 import 'app/theme.dart';
+import 'core/push.dart';
 
 void main() => runApp(const ProviderScope(child: EcoPlusApp()));
 
@@ -13,6 +14,7 @@ class EcoPlusApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(pushProvider);
     final arabic = ref.watch(arabicProvider);
     return MaterialApp.router(
       title: 'EcoPlus',
