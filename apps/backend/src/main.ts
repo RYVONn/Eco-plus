@@ -11,4 +11,9 @@ async function bootstrap() {
   const port = app.get<ConfigService<Env, true>>(ConfigService).get('PORT', { infer: true });
   await app.listen(port);
 }
-await bootstrap();
+
+// Not awaited at module level: Vercel loads this file and waits for listen() itself.
+bootstrap().catch((err: unknown) => {
+  console.error('Failed to start the API', err);
+  process.exit(1);
+});
