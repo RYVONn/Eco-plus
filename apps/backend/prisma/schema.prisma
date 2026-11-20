@@ -35,6 +35,11 @@ enum RequestStatus {
   cancelled
 }
 
+enum RewardChoice {
+  points
+  cash
+}
+
 enum RequestChannel {
   app
   phone
@@ -120,6 +125,8 @@ model User {
   notifications   Notification[]
   refreshTokens   RefreshToken[]
   deviceTokens    DeviceToken[]
+  auditActions    AuditLog[]       @relation("AuditActor")
+  auditTargets    AuditLog[]       @relation("AuditTarget")
 
   @@index([role])
   @@map("users")
@@ -221,6 +228,7 @@ model PickupRequest {
   decision    PickupDecision
   status      RequestStatus  @default(open)
   channel     RequestChannel @default(app)
+  reward      RewardChoice   @default(points)
   createdById Int?
   requestedAt DateTime       @default(now())
 
@@ -297,6 +305,7 @@ model RouteStop {
   shipmentId  Int       @unique
   stopOrder   Int
   collectedAt DateTime?
+  proofUrl    String?
 
   route    Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
   shipment Shipment @relation(fields: [shipmentId], references: [id])
@@ -374,6 +383,11 @@ model WeighingRecord {
   grade          String?
   accepted       Boolean
   rejectReason   String?
+  // Cash owed to a business seller when its pickup was requested for cash. Points sellers have no payout.
+  payout         Decimal? @db.Decimal(12, 2)
+  // Set by an admin when the cash was handed over. Never cleared.
+  paidAt         DateTime?
+  paidById       Int?
   weighedAt      DateTime @default(now())
 
   shipment     Shipment       @relation(fields: [shipmentId], references: [id])
@@ -383,6 +397,7 @@ model WeighingRecord {
   ledger       PointsLedger[]
 
   @@index([employeeId, weighedAt])
+  @@index([paidAt])
   @@map("weighing_records")
 }
 
@@ -475,4 +490,53 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// ---------- Support and contact ----------
+
+// Message sent from the public website form.
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  contact   String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// Append-only record of admin actions that touch someone else's account, such as opening support mode.
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  actorId      Int
+  action       String
+  targetUserId Int?
+  details      Json?
+  createdAt    DateTime @default(now())
+
+  actor  User  @relation("AuditActor", fields: [actorId], references: [id])
+  target User? @relation("AuditTarget", fields: [targetUserId], references: [id])
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ---------- Phone sign-in ----------
+
+// One row per code sent. The code itself is never stored, only a keyed hash.
+model OtpCode {
+  id         Int       @id @default(autoincrement())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  // Set when the SMS gateway refused to send this code. Failed codes do not count against a phone's limits.
+  failedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([createdAt])
+  @@map("otp_codes")
 }

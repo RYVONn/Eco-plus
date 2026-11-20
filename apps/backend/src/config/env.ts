@@ -5,11 +5,22 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  // Only while rotating the secret: the old one, so tokens signed before the change work until they expire.
+  JWT_ACCESS_SECRET_PREVIOUS: z
+    .string()
+    .min(32, 'JWT_ACCESS_SECRET_PREVIOUS must be at least 32 characters')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   JWT_ACCESS_TTL: z.string().default('15m'),
   REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(30),
   CORS_ORIGINS: z.string().default(''),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
   AUTH_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
+  // Reverse proxies in front of the API (Coolify's Traefik is 1). Rate limits need it to see the real client IP.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  // Sign-in codes one IP address may request per hour, and all phones together per day. Both cap SMS cost.
+  OTP_IP_HOURLY_LIMIT: z.coerce.number().int().positive().default(30),
+  OTP_DAILY_LIMIT: z.coerce.number().int().positive().default(1000),
   // Decision rule v1: a bag is worth a trip when its fill level reaches the threshold.
   READY_FILL_THRESHOLD: z.coerce.number().min(0).max(1).default(0.6),
   BUSINESS_READY_FILL_THRESHOLD: z.coerce.number().min(0).max(1).default(0.4),
@@ -25,7 +36,28 @@ const envSchema = z.object({
   // Time zone that decides what "today" means for a driver.
   APP_TIMEZONE: z.string().default('Africa/Cairo'),
   // "none" sends nothing, "log" only logs how many phones would get the push. A real FCM sender is not built yet.
-  PUSH_PROVIDER: z.enum(['none', 'log']).default('none'),
+  PUSH_PROVIDER: z.enum(['none', 'log', 'fcm']).default('none'),
+  // Firebase service account JSON as one string. Needed when PUSH_PROVIDER is "fcm".
+  FCM_SERVICE_ACCOUNT_JSON: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  // Phone codes are sent by POSTing {to, text} to this URL (any SMS gateway can sit behind it).
+  SMS_WEBHOOK_URL: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  SMS_WEBHOOK_TOKEN: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  // Development and tests only: every phone code is this value. Refused in production.
+  OTP_DEV_CODE: z
+    .string()
+    .regex(/^[0-9]{6}$/)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   // Days between delivery and the invoice due date.
   INVOICE_DUE_DAYS: z.coerce.number().int().positive().default(30),
   UPLOAD_DIR: z.string().default('./uploads'),
@@ -47,5 +79,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       .join('\n');
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
-  return parsed.data;
+  const env = parsed.data;
+  if (env.NODE_ENV === 'production' && env.OTP_DEV_CODE) throw new Error('Invalid environment configuration:\n  - OTP_DEV_CODE: must not be set in production');
+  if (env.PUSH_PROVIDER === 'fcm' && !env.FCM_SERVICE_ACCOUNT_JSON) throw new Error('Invalid environment configuration:\n  - FCM_SERVICE_ACCOUNT_JSON: required when PUSH_PROVIDER is fcm');
+  return env;
 }

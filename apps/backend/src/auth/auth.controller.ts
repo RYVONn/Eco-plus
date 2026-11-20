@@ -5,9 +5,13 @@ import { type AuthUser, CurrentUser } from './auth-user.js';
 import { AuthService } from './auth.service.js';
 import {
   type LoginDto,
+  type OtpRequestDto,
+  type OtpVerifyDto,
   type RefreshDto,
   type RegisterDto,
   loginSchema,
+  otpRequestSchema,
+  otpVerifySchema,
   refreshSchema,
   registerSchema,
 } from './auth.schemas.js';
@@ -31,6 +35,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in with phone or email and password' })
   login(@Body(new ZodValidationPipe(loginSchema)) dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('auth/otp/request')
+  @ApiOperation({ summary: 'Send a 6-digit sign-in code by SMS' })
+  requestOtp(@Body(new ZodValidationPipe(otpRequestSchema)) dto: OtpRequestDto) {
+    return this.auth.requestOtp(dto.phone);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('auth/otp/verify')
+  @ApiOperation({ summary: 'Sign in with the SMS code; a new phone number creates a citizen account' })
+  verifyOtp(@Body(new ZodValidationPipe(otpVerifySchema)) dto: OtpVerifyDto) {
+    return this.auth.signInByPhone(dto);
   }
 
   @Public()

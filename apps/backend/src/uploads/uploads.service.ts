@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.js';
 
@@ -17,6 +17,7 @@ function detectType(buf: Buffer): 'jpg' | 'png' | null {
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
   private readonly dir: string;
 
   constructor(config: ConfigService<Env, true>) {
@@ -39,6 +40,16 @@ export class UploadsService {
   /** True when the value is a URL this service handed out (used to validate scan.imageUrl). */
   static isUploadUrl(url: string): boolean {
     return url.startsWith('/uploads/') && NAME_PATTERN.test(url.slice('/uploads/'.length));
+  }
+
+  /** Deletes stored photos by URL. Never throws: a file that is already gone is the wanted result. */
+  async removeMany(urls: string[]): Promise<void> {
+    const names = urls.filter((u) => UploadsService.isUploadUrl(u)).map((u) => u.slice('/uploads/'.length));
+    await Promise.all(
+      names.map((name) =>
+        rm(join(this.dir, name), { force: true }).catch(() => this.logger.warn(`Could not delete photo ${name}`)),
+      ),
+    );
   }
 
   async open(name: string) {

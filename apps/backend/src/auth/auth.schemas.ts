@@ -38,6 +38,16 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(20).max(200),
 });
 
+export const otpRequestSchema = z.object({ phone });
+
+export const otpVerifySchema = z.object({
+  phone,
+  code: z.string().regex(/^[0-9]{6}$/, 'The code is 6 digits'),
+  name: z.string().trim().min(2).max(100).optional(),
+});
+
+export type OtpRequestDto = z.infer<typeof otpRequestSchema>;
+export type OtpVerifyDto = z.infer<typeof otpVerifySchema>;
 export type RegisterDto = z.infer<typeof registerSchema>;
 export type LoginDto = z.infer<typeof loginSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;

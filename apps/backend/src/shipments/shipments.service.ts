@@ -11,7 +11,7 @@ const STAFF = ['admin', 'employee'];
 
 const withDetails = {
   request: { include: { scan: { select: { id: true, userId: true, imageUrl: true, contentType: true, fillLevel: true } } } },
-  weighing: true,
+  weighing: { include: { materialType: { select: { name: true } } } },
 } as const;
 
 @Injectable()

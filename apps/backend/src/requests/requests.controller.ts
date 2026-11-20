@@ -27,7 +27,7 @@ export class RequestsController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.scans.get(user, dto.scanId); // 404 or 403 unless the scan is mine
-    const result = await this.requests.createFromScan({ scanId: dto.scanId, channel: 'app' });
+    const result = await this.requests.createFromScan({ scanId: dto.scanId, channel: 'app', reward: dto.reward });
     res.status(result.decision === 'wait' ? 200 : 201);
     return result;
   }

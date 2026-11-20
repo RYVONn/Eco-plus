@@ -52,4 +52,44 @@ export class AdminStatsService {
     });
     return { items: rows };
   }
+
+  /** Kilograms recycled and a rough CO2 estimate. The factor is a placeholder until a real source is chosen. */
+  async impact() {
+    const grouped = await this.prisma.weighingRecord.groupBy({
+      by: ['materialTypeId'],
+      where: { accepted: true },
+      _sum: { actualWeightKg: true },
+    });
+    const materials = await this.prisma.materialType.findMany({ select: { id: true, name: true } });
+    const nameById = new Map(materials.map((m) => [m.id, m.name]));
+    const byMaterial = grouped.map((g) => ({
+      materialTypeId: g.materialTypeId,
+      material: g.materialTypeId === null ? 'Unknown' : (nameById.get(g.materialTypeId) ?? 'Unknown'),
+      kg: Number(g._sum.actualWeightKg ?? 0),
+    }));
+    const totalKg = byMaterial.reduce((s, r) => s + r.kg, 0);
+    const co2KgPerKg = 1.5;
+    return { totalKg, co2KgPerKg, co2SavedKg: Number((totalKg * co2KgPerKg).toFixed(1)), byMaterial };
+  }
+
+  /** Things an admin should look at: shipments that are not moving, cash left unpaid, and failing SMS codes. */
+  async alerts() {
+    const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const [notAssigned, notCollected, rejectedToday, unpaidPayouts, smsFailures] = await Promise.all([
+      this.prisma.shipment.count({ where: { status: 'created', createdAt: { lt: new Date(now - day) } } }),
+      this.prisma.shipment.count({ where: { status: 'assigned', updatedAt: { lt: new Date(now - 2 * day) } } }),
+      this.prisma.weighingRecord.count({ where: { accepted: false, weighedAt: { gte: new Date(now - day) } } }),
+      this.prisma.weighingRecord.count({ where: { payout: { not: null }, paidAt: null, weighedAt: { lt: new Date(now - 7 * day) } } }),
+      this.prisma.otpCode.count({ where: { failedAt: { gte: new Date(now - 60 * 60 * 1000) } } }),
+    ]);
+    const items = [
+      { type: 'not_assigned', severity: 'warn', count: notAssigned },
+      { type: 'not_collected', severity: 'bad', count: notCollected },
+      { type: 'rejected_today', severity: 'info', count: rejectedToday },
+      { type: 'unpaid_payouts', severity: 'warn', count: unpaidPayouts },
+      { type: 'sms_failures', severity: 'bad', count: smsFailures },
+    ].filter((a) => a.count > 0);
+    return { items };
+  }
 }

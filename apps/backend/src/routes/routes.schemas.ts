@@ -32,8 +32,14 @@ export const collectStopSchema = z.object({
   handoverCode: z.string().regex(/^[0-9]{6}$/, 'The code has 6 digits'),
 });
 
+/** Photo of the collected bag, uploaded first with POST /uploads/image. Only our own upload paths are accepted. */
+export const stopProofSchema = z.object({
+  imageUrl: z.string().regex(/^\/uploads\/[a-f0-9]{32}\.(png|jpg|jpeg)$/, 'Upload the photo first and pass the url you got back'),
+});
+
 export type CreateRouteDto = z.infer<typeof createRouteSchema>;
 export type ReorderRouteDto = z.infer<typeof reorderRouteSchema>;
 export type ListRoutesDto = z.infer<typeof listRoutesSchema>;
 export type DriverRoutesDto = z.infer<typeof driverRoutesSchema>;
+export type StopProofDto = z.infer<typeof stopProofSchema>;
 export type CollectStopDto = z.infer<typeof collectStopSchema>;

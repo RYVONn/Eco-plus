@@ -22,6 +22,7 @@ function toDriverView(route: RouteWithStops) {
       shipmentId: s.shipment.id,
       status: s.shipment.status,
       collectedAt: s.collectedAt,
+      proofUrl: s.proofUrl,
       lat: s.shipment.gpsLat,
       lng: s.shipment.gpsLng,
       customer: s.shipment.request.scan.user,
@@ -133,6 +134,16 @@ export class DriverRoutesService {
 
     await this.push.sendToUser(stop.shipment.request.scan.userId, 'Bag collected');
     return { shipmentId, status: 'collected' as const, routeFinished };
+  }
+
+  /** Attach the photo of the bag to a stop the driver has already collected. */
+  async addProof(driverId: number, shipmentId: number, imageUrl: string) {
+    const stop = await this.prisma.routeStop.findUnique({ where: { shipmentId }, include: { route: { select: { driverId: true } } } });
+    if (!stop) throw new NotFoundException('This shipment is not on a route.');
+    if (stop.route.driverId !== driverId) throw new ForbiddenException('This stop belongs to another driver.');
+    if (stop.collectedAt === null) throw new ConflictException({ code: 'not_collected', message: 'Collect the bag before adding a photo.' });
+    await this.prisma.routeStop.update({ where: { shipmentId }, data: { proofUrl: imageUrl } });
+    return { shipmentId, proofUrl: imageUrl };
   }
 
   private async one(routeId: number) {

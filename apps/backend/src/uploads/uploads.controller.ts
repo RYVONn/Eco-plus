@@ -10,7 +10,7 @@ import { UploadsService } from './uploads.service.js';
 export class UploadsController {
   constructor(private readonly uploads: UploadsService) {}
 
-  @Roles('citizen', 'business', 'admin', 'employee')
+  @Roles('citizen', 'business', 'admin', 'employee', 'driver')
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')

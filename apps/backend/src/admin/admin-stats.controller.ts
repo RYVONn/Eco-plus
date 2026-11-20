@@ -23,4 +23,16 @@ export class AdminStatsController {
   points() {
     return this.service.points();
   }
+
+  @Get('impact')
+  @ApiOperation({ summary: 'Total kilograms recycled, by material, with a rough CO2 estimate' })
+  impact() {
+    return this.service.impact();
+  }
+
+  @Get('alerts')
+  @ApiOperation({ summary: 'Shipments that are not moving and other things to look at' })
+  alerts() {
+    return this.service.alerts();
+  }
 }

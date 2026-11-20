@@ -1,14 +1,22 @@
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { INestApplication, Type } from '@nestjs/common';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
+import { validateEnv } from '../src/config/env.js';
 
-export async function createTestApp(extraControllers: Type<unknown>[] = []): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
-    controllers: extraControllers,
-  }).compile();
+/** `env` changes configuration values for this one app, for example to switch the rate limits on. */
+export async function createTestApp(
+  extraControllers: Type<unknown>[] = [],
+  env: Record<string, string> = {},
+): Promise<INestApplication> {
+  const builder = Test.createTestingModule({ imports: [AppModule], controllers: extraControllers });
+  if (Object.keys(env).length > 0) {
+    const values = validateEnv({ ...process.env, ...env }) as unknown as Record<string, unknown>;
+    builder.overrideProvider(ConfigService).useValue({ get: (key: string) => values[key] });
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();
@@ -59,7 +67,7 @@ export async function registerCustomer(app: App, role: 'citizen' | 'business' = 
 export async function bagToPickup(
   app: App,
   customer: Customer,
-  opts: { fillLevel?: number; contentType?: string; lat?: number; lng?: number } = {},
+  opts: { fillLevel?: number; contentType?: string; lat?: number; lng?: number; reward?: 'points' | 'cash' } = {},
 ) {
   const auth = { Authorization: `Bearer ${customer.token}` };
   const upload = await request(app.getHttpServer()).post('/uploads/image').set(auth).attach('file', TINY_PNG, 'bag.png').expect(201);
@@ -74,6 +82,26 @@ export async function bagToPickup(
       lng: opts.lng ?? 31.23,
     })
     .expect(201);
-  const pickup = await request(app.getHttpServer()).post('/pickup-requests').set(auth).send({ scanId: scan.body.id });
+  const pickup = await request(app.getHttpServer()).post('/pickup-requests').set(auth).send({ scanId: scan.body.id, ...(opts.reward ? { reward: opts.reward } : {}) });
   return { scan: scan.body, pickup };
+}
+
+/** Takes a bag all the way to a weighed 10 kg shipment. Returns the ids and the weighing answer. */
+export async function bagToWeighed(
+  app: App,
+  customer: Customer,
+  employeeToken: string,
+  materialTypeId: number,
+  opts: { reward?: 'points' | 'cash' } = {},
+) {
+  const { scan, pickup } = await bagToPickup(app, customer, { fillLevel: 0.9, reward: opts.reward });
+  const shipmentId = pickup.body.shipment.id as number;
+  const auth = { Authorization: `Bearer ${employeeToken}` };
+  await request(app.getHttpServer()).post(`/shipments/${shipmentId}/collect`).set(auth).expect(200);
+  const weigh = await request(app.getHttpServer())
+    .post(`/shipments/${shipmentId}/weigh`)
+    .set(auth)
+    .send({ materialTypeId, actualWeightKg: 10, accepted: true })
+    .expect(201);
+  return { scan: scan as { id: number; imageUrl: string }, shipmentId, weighingId: weigh.body.weighing.id as number, weigh: weigh.body };
 }
