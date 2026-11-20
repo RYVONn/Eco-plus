@@ -1,5 +1,7 @@
 # Hosting
 
+The current plan is Vercel (free Hobby plan), see `VERCEL.md`. The Coolify plan below is kept for when there is a paid server.
+
 Plan (nothing deployed yet):
 
 - One VPS (Ubuntu) running **Coolify**: the API container, PostgreSQL 16 with daily backups, HTTPS certificates.
