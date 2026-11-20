@@ -98,6 +98,37 @@ Staff can no longer mark a shipment that is on a route as collected (`409 on_dri
 
 Still open in Phase 3: admin dashboard numbers, impact report, capacity and low-stock alerts, audit log table, user and level management.
 
+## Cash payouts, account deletion and sign-in limits
+
+**Cash payouts.** A business can ask for cash instead of points (`reward: cash` on the pickup request). Weighing then stores
+`payout = weight x pricePerKg` and writes no ledger entries. Cash is handed over outside the app, so an admin records it:
+
+| Call | Who | What it does |
+| --- | --- | --- |
+| `GET /admin/payouts?status=unpaid\|paid` | admin | Payouts newest first, with the total of the whole filter (`totalEgp`) |
+| `POST /admin/payouts/:weighingId/pay` | admin | Marks it paid. `409 already_paid` the second time, `404` when the weighing has no cash payout. Writes `payout_paid` to the audit log and notifies the business |
+| `GET /me/payouts` | business | Its own statement with `dueEgp` and `paidEgp` |
+
+Two admins paying at once cannot both win: the claim is one conditional update. `GET /admin/alerts` shows `unpaid_payouts` for cash unpaid over 7 days.
+
+**Account deletion.** `DELETE /me` (citizen or business) erases name, phone, email, address, locations, bag photos, notifications and
+device tokens, disables the login and writes `account_deleted` to the audit log. Weighings, points and shipments stay, without a name or
+contact, because the factory's books depend on them. It answers `409 pickup_in_progress` while a pickup is open or waiting to be weighed
+and `409 payout_due` while cash is still owed. The phone number can then be used for a new account. Staff accounts are removed by an admin.
+
+**Limits on phone sign-in.** Per phone: 30 seconds between codes, 5 codes an hour, 5 wrong tries per code. Per IP address: the `/auth` limit
+(`AUTH_THROTTLE_LIMIT` a minute) and `OTP_IP_HOURLY_LIMIT` codes an hour. All phones together: `OTP_DAILY_LIMIT` codes a day, then `503 otp_daily_limit`
+and an error in the log, so a botnet cannot run up the SMS bill. A code the gateway refused is marked `failedAt`, does not count against the phone,
+and shows in `GET /admin/alerts` as `sms_failures` (last hour).
+
+**Behind a reverse proxy (Coolify).** Set `TRUST_PROXY=1`. Without it every user looks like the proxy's address and shares one rate limit. Use the
+real number of proxies: a higher number lets a client fake its address with `X-Forwarded-For`. Mobile carriers share one address between many
+users, so raise `OTP_IP_HOURLY_LIMIT` if real people get blocked.
+
+**Rotating the JWT secret.** 1) Put the old value in `JWT_ACCESS_SECRET_PREVIOUS` and the new one in `JWT_ACCESS_SECRET`. 2) Deploy: new tokens use the new
+secret, tokens signed with the old one still work. 3) After `JWT_ACCESS_TTL` has passed, empty `JWT_ACCESS_SECRET_PREVIOUS` and deploy again.
+Refresh tokens are random values and are not affected. Phone codes sent in the last 5 minutes stop working at step 2 (the user asks for a new one).
+
 ## Tests
 
 ```bash
@@ -172,7 +203,9 @@ project document (ERD and dictionary).
 - A driver cannot report "customer not home"; a stop that cannot be collected has to be removed by an admin before the route starts, and after that it stays open.
 - The 6 digit handover code is protected by a rate limit (10 tries a minute per IP) and the route checks, not by a per-code attempt counter.
 - Stop order ignores traffic and vehicle capacity (no weight is known before weighing).
-- Rate limiting is per IP (stricter on `/auth`). There is no per-account lockout yet.
+- Rate limiting is per IP (stricter on `/auth` and on phone codes). There is no per-account lockout for password login yet.
+- Cash payouts are recorded by an admin after the cash is handed over. Nothing moves money in the app, and there is no way to undo "paid" (a wrong entry is fixed with a note in the audit log).
+- The price per kilo behind cash payouts, and the CO2 factor, are placeholders until written factory quotes exist.
 - Password reset, email and phone verification are not built.
 - The Dockerfile and `docker-compose.yml` were written but not run (Docker is not installed on the
   development machine). CI is written but has not run yet because the repository is not on GitHub.
