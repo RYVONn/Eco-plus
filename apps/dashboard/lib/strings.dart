@@ -66,6 +66,8 @@ class T {
   String get materials => _('الخامات', 'Materials');
   String get addFactory => _('إضافة مصنع', 'Add factory');
   String get addMaterial => _('إضافة خامة', 'Add material');
+  String get editMaterial => _('تعديل الخامة', 'Edit material');
+  String get co2KgPerKg => _('CO2 لكل كجم (كجم)', 'CO2 per kg (kg)');
   String get contact => _('جهة الاتصال', 'Contact');
   String get address => _('العنوان', 'Address');
   String get pointFactor => _('معامل النقاط', 'Point factor');
