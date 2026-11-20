@@ -6,9 +6,11 @@ import '../data.dart';
 import '../strings.dart';
 import 'ui.dart';
 
-/// A small create form: one text field per spec, POSTed as JSON to [path]; API errors show inside the dialog.
-Future<void> showFormDialog(BuildContext context, WidgetRef ref, T t, String title, List<FormFieldSpec> fields, String path, FutureProvider<List<Json>> refresh) async {
-  final ctrls = {for (final f in fields) f.key: TextEditingController()};
+/// A small form: one text field per spec, sent as JSON to [path] (POST, or PATCH when [patch] is true); API errors show
+/// inside the dialog. [initial] fills the fields when editing; empty fields are not sent.
+Future<void> showFormDialog(BuildContext context, WidgetRef ref, T t, String title, List<FormFieldSpec> fields, String path, FutureProvider<List<Json>> refresh,
+    {Json? initial, bool patch = false}) async {
+  final ctrls = {for (final f in fields) f.key: TextEditingController(text: initial?[f.key] == null ? '' : '${initial![f.key]}')};
   String? error;
   var busy = false;
   // The controllers are not disposed here: the dialog is still animating out when this future completes.
@@ -48,7 +50,8 @@ Future<void> showFormDialog(BuildContext context, WidgetRef ref, T t, String tit
                         if (v.isEmpty) continue;
                         body[f.key] = f.number ? num.tryParse(v) : v;
                       }
-                      await ref.read(dioProvider).post(path, data: body);
+                      final dio = ref.read(dioProvider);
+                      await (patch ? dio.patch(path, data: body) : dio.post(path, data: body));
                       ref.invalidate(refresh);
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (context.mounted) toast(context, t.saved);

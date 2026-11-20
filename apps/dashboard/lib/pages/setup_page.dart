@@ -57,11 +57,26 @@ class SetupPage extends ConsumerWidget {
       section(
         t.materials,
         t.addMaterial,
-        () => showFormDialog(context, ref, t, t.addMaterial, [FormFieldSpec('name', t.fullName), FormFieldSpec('pointFactor', t.pointFactor, number: true), FormFieldSpec('pricePerKg', t.pricePerKg, number: true)], '/materials', materialsProvider),
+        () => showFormDialog(context, ref, t, t.addMaterial, [FormFieldSpec('name', t.fullName), FormFieldSpec('pointFactor', t.pointFactor, number: true), FormFieldSpec('pricePerKg', t.pricePerKg, number: true), FormFieldSpec('co2KgPerKg', t.co2KgPerKg, number: true)], '/materials', materialsProvider),
         AsyncBody<List<Json>>(
           value: ref.watch(materialsProvider),
           onRetry: () => ref.invalidate(materialsProvider),
-          builder: (list) => Column(children: [for (final (i, m) in list.indexed) row('${m['name']}', '${t.pointFactor} ${n(m['pointFactor'])} · ${n(m['pricePerKg'])} ${t.currency}/${t.kg}', i, ActiveSwitch(value: m['isActive'] != false, path: '/materials/${m['id']}', refresh: materialsProvider))]),
+          builder: (list) => Column(children: [
+            for (final (i, m) in list.indexed)
+              row(
+                '${m['name']}',
+                '${t.pointFactor} ${n(m['pointFactor'])} · ${n(m['pricePerKg'])} ${t.currency}/${t.kg}${m['co2KgPerKg'] == null ? '' : ' · CO2 ${n(m['co2KgPerKg'])}'}',
+                i,
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                    tooltip: t.editMaterial,
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => showFormDialog(context, ref, t, t.editMaterial, [FormFieldSpec('name', t.fullName), FormFieldSpec('pointFactor', t.pointFactor, number: true), FormFieldSpec('pricePerKg', t.pricePerKg, number: true), FormFieldSpec('co2KgPerKg', t.co2KgPerKg, number: true)], '/materials/${m['id']}', materialsProvider, initial: m, patch: true),
+                  ),
+                  ActiveSwitch(value: m['isActive'] != false, path: '/materials/${m['id']}', refresh: materialsProvider),
+                ]),
+              ),
+          ]),
         ),
       ),
       const SizedBox(height: 32),
