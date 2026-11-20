@@ -1,8 +1,8 @@
 import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Public } from '../auth/public.decorator.js';
+import { SkipThrottle } from '../common/rate-limit.js';
 
 @ApiTags('health')
 @Controller('health')

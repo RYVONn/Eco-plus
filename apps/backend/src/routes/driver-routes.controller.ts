@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { type AuthUser, CurrentUser } from '../auth/auth-user.js';
 import { Roles } from '../auth/roles.decorator.js';
+import { Throttle } from '../common/rate-limit.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { DriverRoutesService } from './driver-routes.service.js';
 import { type CollectStopDto, type DriverRoutesDto, type StopProofDto, collectStopSchema, driverRoutesSchema, stopProofSchema } from './routes.schemas.js';

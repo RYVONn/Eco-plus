@@ -1,10 +1,10 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { type AuthUser, CurrentUser } from '../auth/auth-user.js';
 import { Public } from '../auth/public.decorator.js';
 import { Roles } from '../auth/roles.decorator.js';
 import { type Pagination, paginationSchema } from '../common/pagination.js';
+import { Throttle } from '../common/rate-limit.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { type ContactDto, type StartSupportDto, contactSchema, startSupportSchema } from './admin-support.schemas.js';
 import { AdminSupportService } from './admin-support.service.js';
