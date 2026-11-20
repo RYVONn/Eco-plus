@@ -72,7 +72,8 @@ export type Env = z.infer<typeof envSchema>;
 
 /** Validates process.env at startup and fails fast with a readable list of problems. */
 export function validateEnv(raw: Record<string, unknown>): Env {
-  const parsed = envSchema.safeParse(raw);
+  // The Vercel Neon integration names the pooled connection string POSTGRES_URL.
+  const parsed = envSchema.safeParse({ ...raw, DATABASE_URL: raw.DATABASE_URL || raw.POSTGRES_URL });
   if (!parsed.success) {
     const problems = parsed.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
