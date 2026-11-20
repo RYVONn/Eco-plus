@@ -1,10 +1,14 @@
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import type { Express } from 'express';
-import helmet from 'helmet';
+import type { Express, RequestHandler } from 'express';
+import helmetModule from 'helmet';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import type { Env } from './config/env.js';
+
+// Vercel type-checks as CommonJS, where the default import is the module object holding the function; unwrap it either way.
+type HelmetFn = () => RequestHandler;
+const helmet = ((helmetModule as unknown as { default?: HelmetFn }).default ?? helmetModule) as unknown as HelmetFn;
 
 /** Settings shared by the real server (main.ts) and the end-to-end tests. */
 export function configureApp(app: INestApplication): void {
