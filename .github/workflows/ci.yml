@@ -29,13 +29,29 @@ jobs:
         working-directory: apps/backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: apps/backend/.nvmrc
           cache: npm
           cache-dependency-path: apps/backend/package-lock.json
+      - name: Migrations that already exist are never edited
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: |
+          changed=$(git diff --name-status --diff-filter=MDR "origin/${{ github.base_ref }}...HEAD" -- apps/backend/prisma/migrations)
+          if [ -n "$changed" ]; then
+            echo "A migration that is already on ${{ github.base_ref }} was edited, renamed or deleted. Add a new migration instead:"
+            echo "$changed"
+            exit 1
+          fi
       - run: npm ci
       - run: npx prisma generate
+      - name: Migrations produce exactly the schema
+        run: |
+          npx prisma migrate deploy
+          npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
