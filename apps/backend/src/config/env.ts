@@ -5,11 +5,22 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  // Only while rotating the secret: the old one, so tokens signed before the change work until they expire.
+  JWT_ACCESS_SECRET_PREVIOUS: z
+    .string()
+    .min(32, 'JWT_ACCESS_SECRET_PREVIOUS must be at least 32 characters')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   JWT_ACCESS_TTL: z.string().default('15m'),
   REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(30),
   CORS_ORIGINS: z.string().default(''),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
   AUTH_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
+  // Reverse proxies in front of the API (Coolify's Traefik is 1). Rate limits need it to see the real client IP.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  // Sign-in codes one IP address may request per hour, and all phones together per day. Both cap SMS cost.
+  OTP_IP_HOURLY_LIMIT: z.coerce.number().int().positive().default(30),
+  OTP_DAILY_LIMIT: z.coerce.number().int().positive().default(1000),
   // Decision rule v1: a bag is worth a trip when its fill level reaches the threshold.
   READY_FILL_THRESHOLD: z.coerce.number().min(0).max(1).default(0.6),
   BUSINESS_READY_FILL_THRESHOLD: z.coerce.number().min(0).max(1).default(0.4),

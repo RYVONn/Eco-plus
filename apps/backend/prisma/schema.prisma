@@ -532,8 +532,11 @@ model OtpCode {
   attempts   Int       @default(0)
   expiresAt  DateTime
   consumedAt DateTime?
+  // Set when the SMS gateway refused to send this code. Failed codes do not count against a phone's limits.
+  failedAt   DateTime?
   createdAt  DateTime  @default(now())
 
   @@index([phone, createdAt])
+  @@index([createdAt])
   @@map("otp_codes")
 }

@@ -1,7 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Role } from '../generated/prisma/enums.js';
 import { IS_PUBLIC_KEY } from './public.decorator.js';
@@ -21,6 +23,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -36,7 +39,7 @@ export class JwtAuthGuard implements CanActivate {
 
     let payload: AccessTokenPayload;
     try {
-      payload = await this.jwt.verifyAsync<AccessTokenPayload>(token);
+      payload = await this.verify(token);
     } catch {
       throw new UnauthorizedException('Invalid or expired access token.');
     }
@@ -49,5 +52,16 @@ export class JwtAuthGuard implements CanActivate {
 
     req.user = { id: user.id, role: user.role, factoryId: user.factoryId };
     return true;
+  }
+
+  /** Checks the current secret first. During a rotation the previous secret is still accepted. */
+  private async verify(token: string): Promise<AccessTokenPayload> {
+    try {
+      return await this.jwt.verifyAsync<AccessTokenPayload>(token);
+    } catch (e) {
+      const previous = this.config.get('JWT_ACCESS_SECRET_PREVIOUS', { infer: true });
+      if (!previous) throw e;
+      return this.jwt.verifyAsync<AccessTokenPayload>(token, { secret: previous });
+    }
   }
 }

@@ -45,6 +45,13 @@ import { WeighingModule } from './weighing/weighing.module.js';
               limit: config.get('AUTH_THROTTLE_LIMIT', { infer: true }),
               skipIf: (ctx) => inTest || !ctx.switchToHttp().getRequest<{ url: string }>().url.startsWith('/auth'),
             },
+            {
+              // Each phone code costs an SMS, so one IP address gets a small hourly allowance.
+              name: 'otp',
+              ttl: 3_600_000,
+              limit: config.get('OTP_IP_HOURLY_LIMIT', { infer: true }),
+              skipIf: (ctx) => inTest || ctx.switchToHttp().getRequest<{ url: string }>().url !== '/auth/otp/request',
+            },
           ],
         };
       },

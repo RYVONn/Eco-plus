@@ -1,14 +1,22 @@
 import { randomUUID } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { INestApplication, Type } from '@nestjs/common';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
+import { validateEnv } from '../src/config/env.js';
 
-export async function createTestApp(extraControllers: Type<unknown>[] = []): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
-    controllers: extraControllers,
-  }).compile();
+/** `env` changes configuration values for this one app, for example to switch the rate limits on. */
+export async function createTestApp(
+  extraControllers: Type<unknown>[] = [],
+  env: Record<string, string> = {},
+): Promise<INestApplication> {
+  const builder = Test.createTestingModule({ imports: [AppModule], controllers: extraControllers });
+  if (Object.keys(env).length > 0) {
+    const values = validateEnv({ ...process.env, ...env }) as unknown as Record<string, unknown>;
+    builder.overrideProvider(ConfigService).useValue({ get: (key: string) => values[key] });
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
   configureApp(app);
   await app.init();

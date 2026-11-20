@@ -9,6 +9,8 @@ const TTL_MS = 5 * 60 * 1000;
 const RESEND_AFTER_MS = 30 * 1000;
 const MAX_SENDS_PER_HOUR = 5;
 const MAX_ATTEMPTS = 5;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 @Injectable()
 export class OtpService {
@@ -28,7 +30,7 @@ export class OtpService {
   async request(phone: string): Promise<{ expiresInSeconds: number; resendAfterSeconds: number }> {
     const now = Date.now();
     const recent = await this.prisma.otpCode.findMany({
-      where: { phone, createdAt: { gt: new Date(now - 60 * 60 * 1000) } },
+      where: { phone, failedAt: null, createdAt: { gt: new Date(now - HOUR_MS) } },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
@@ -40,15 +42,26 @@ export class OtpService {
       );
     }
 
+    // A botnet can rotate phone numbers and IP addresses, so the total per day is capped as well.
+    const dailyLimit = this.config.get('OTP_DAILY_LIMIT', { infer: true });
+    if ((await this.prisma.otpCode.count({ where: { createdAt: { gt: new Date(now - DAY_MS) } } })) >= dailyLimit) {
+      this.log.error(`Daily limit of ${dailyLimit} sign-in codes reached. New codes are refused until it drops.`);
+      throw new HttpException(
+        { code: 'otp_daily_limit', message: 'Sign-in codes are unavailable right now. Try again later.' },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     const devCode = this.config.get('OTP_DEV_CODE', { infer: true });
     const code = devCode ?? String(randomInt(0, 1_000_000)).padStart(6, '0');
-    await this.prisma.otpCode.create({
+    const row = await this.prisma.otpCode.create({
       data: { phone, codeHash: this.hash(phone, code), expiresAt: new Date(now + TTL_MS) },
     });
     if (!devCode) {
       try {
         await this.sms.send(phone, `EcoPlus code: ${code}. It works for 5 minutes. Do not share it.`);
       } catch (e) {
+        await this.prisma.otpCode.update({ where: { id: row.id }, data: { failedAt: new Date() } });
         this.log.error(`SMS failed for ${phone}: ${(e as Error).message}`);
         throw new HttpException(
           { code: 'sms_failed', message: 'Could not send the code. Try again shortly.' },
@@ -62,7 +75,7 @@ export class OtpService {
   /** Throws unless the newest live code for this phone matches. A code works once. */
   async verify(phone: string, code: string): Promise<void> {
     const row = await this.prisma.otpCode.findFirst({
-      where: { phone, consumedAt: null, expiresAt: { gt: new Date() } },
+      where: { phone, failedAt: null, consumedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
     if (!row || row.attempts >= MAX_ATTEMPTS) throw new BadRequestException('The code is wrong or expired.');

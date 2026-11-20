@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { Express } from 'express';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import type { Env } from './config/env.js';
@@ -8,6 +9,10 @@ import type { Env } from './config/env.js';
 /** Settings shared by the real server (main.ts) and the end-to-end tests. */
 export function configureApp(app: INestApplication): void {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+
+  // Behind a reverse proxy every request would otherwise look like it came from the proxy's address.
+  const proxyHops = config.get('TRUST_PROXY', { infer: true });
+  if (proxyHops > 0) (app.getHttpAdapter().getInstance() as Express).set('trust proxy', proxyHops);
 
   app.use(helmet());
   app.useGlobalFilters(new AllExceptionsFilter());

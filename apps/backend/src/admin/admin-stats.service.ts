@@ -72,21 +72,23 @@ export class AdminStatsService {
     return { totalKg, co2KgPerKg, co2SavedKg: Number((totalKg * co2KgPerKg).toFixed(1)), byMaterial };
   }
 
-  /** Things an admin should look at: shipments that are not moving, and cash left unpaid. */
+  /** Things an admin should look at: shipments that are not moving, cash left unpaid, and failing SMS codes. */
   async alerts() {
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
-    const [notAssigned, notCollected, rejectedToday, unpaidPayouts] = await Promise.all([
+    const [notAssigned, notCollected, rejectedToday, unpaidPayouts, smsFailures] = await Promise.all([
       this.prisma.shipment.count({ where: { status: 'created', createdAt: { lt: new Date(now - day) } } }),
       this.prisma.shipment.count({ where: { status: 'assigned', updatedAt: { lt: new Date(now - 2 * day) } } }),
       this.prisma.weighingRecord.count({ where: { accepted: false, weighedAt: { gte: new Date(now - day) } } }),
       this.prisma.weighingRecord.count({ where: { payout: { not: null }, paidAt: null, weighedAt: { lt: new Date(now - 7 * day) } } }),
+      this.prisma.otpCode.count({ where: { failedAt: { gte: new Date(now - 60 * 60 * 1000) } } }),
     ]);
     const items = [
       { type: 'not_assigned', severity: 'warn', count: notAssigned },
       { type: 'not_collected', severity: 'bad', count: notCollected },
       { type: 'rejected_today', severity: 'info', count: rejectedToday },
       { type: 'unpaid_payouts', severity: 'warn', count: unpaidPayouts },
+      { type: 'sms_failures', severity: 'bad', count: smsFailures },
     ].filter((a) => a.count > 0);
     return { items };
   }
