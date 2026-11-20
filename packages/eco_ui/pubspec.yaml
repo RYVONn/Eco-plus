@@ -15,12 +15,12 @@ dependencies:
 
 flutter:
   fonts:
-    - family: IBMPlexSansArabic
+    - family: ReadexPro
       fonts:
-        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
-        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+        - asset: assets/fonts/ReadexPro-Variable.ttf
+        - asset: assets/fonts/ReadexPro-Variable.ttf
           weight: 500
-        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+        - asset: assets/fonts/ReadexPro-Variable.ttf
           weight: 600
-        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+        - asset: assets/fonts/ReadexPro-Variable.ttf
           weight: 700

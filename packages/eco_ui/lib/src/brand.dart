@@ -5,7 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'theme.dart';
 
-/// The EcoPlus mark: a leaf-shaped tile with a plus. Same shape as docs/design/brand/logo.svg.
+/// The EcoPlus mark: "Sorted E", an E built from three rounded layers like sorted materials.
+/// Same geometry as the logo lab, option 2.
 class LogoMark extends StatelessWidget {
   const LogoMark({super.key, this.size = 44, this.animate = false, this.onDark = false});
   final double size;
@@ -14,49 +15,40 @@ class LogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mark = SizedBox(width: size, height: size, child: CustomPaint(painter: _LogoPainter(plusColor: const Color(0xFF0B3D2E))));
+    final top = onDark ? EcoColors.bloom : EcoColors.light.primary;
+    final mark = SizedBox(width: size, height: size, child: CustomPaint(painter: _LogoPainter(top: top, leaf: EcoColors.leaf)));
     if (!animate) return mark;
     return mark
         .animate()
-        .scale(begin: const Offset(0.4, 0.4), duration: 700.ms, curve: Curves.elasticOut)
-        .fadeIn(duration: 250.ms)
-        .then(delay: 300.ms)
-        .shimmer(duration: 1400.ms, color: Colors.white.withValues(alpha: 0.7));
+        .fadeIn(duration: 200.ms)
+        .slideX(begin: -0.18, end: 0, duration: 520.ms, curve: Curves.easeOutCubic)
+        .then(delay: 200.ms)
+        .shimmer(duration: 1200.ms, color: Colors.white.withValues(alpha: 0.5));
   }
 }
 
 class _LogoPainter extends CustomPainter {
-  _LogoPainter({required this.plusColor});
-  final Color plusColor;
+  _LogoPainter({required this.top, required this.leaf});
+  final Color top;
+  final Color leaf;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final k = size.width / 96;
-    final path = Path()
-      ..moveTo(0, 48 * k)
-      ..arcToPoint(Offset(48 * k, 0), radius: Radius.circular(48 * k))
-      ..lineTo(83 * k, 0)
-      ..arcToPoint(Offset(96 * k, 13 * k), radius: Radius.circular(13 * k))
-      ..lineTo(96 * k, 48 * k)
-      ..arcToPoint(Offset(48 * k, 96 * k), radius: Radius.circular(48 * k))
-      ..lineTo(13 * k, 96 * k)
-      ..arcToPoint(Offset(0, 83 * k), radius: Radius.circular(13 * k))
-      ..close();
-    canvas.drawPath(path, Paint()..color = EcoColors.bloom);
-    final plus = Paint()
-      ..color = plusColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10 * k
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(48 * k, 27 * k), Offset(48 * k, 69 * k), plus);
-    canvas.drawLine(Offset(27 * k, 48 * k), Offset(69 * k, 48 * k), plus);
+    final k = size.width / 100;
+    void bar(double y, double w, Color c) => canvas.drawRRect(
+          RRect.fromRectAndRadius(Rect.fromLTWH(22 * k, y * k, w * k, 16 * k), Radius.circular(8 * k)),
+          Paint()..color = c,
+        );
+    bar(20, 56, top);
+    bar(42, 40, top);
+    bar(64, 56, leaf);
   }
 
   @override
-  bool shouldRepaint(_LogoPainter old) => old.plusColor != plusColor;
+  bool shouldRepaint(_LogoPainter old) => old.top != top || old.leaf != leaf;
 }
 
-/// "EcoPlus" with the plus in the accent colour. Latin only; the Arabic name is written إيكو بلس.
+/// "ecoplus" in lowercase, one colour. The Arabic name is written إيكو بلس.
 class Wordmark extends StatelessWidget {
   const Wordmark({super.key, this.size = 28, this.color, this.accent});
   final double size;
@@ -66,13 +58,9 @@ class Wordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = color ?? context.eco.ink;
-    final style = TextStyle(fontFamily: kFont, fontSize: size, fontWeight: FontWeight.w700, letterSpacing: -0.5, height: 1);
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Text.rich(TextSpan(children: [
-        TextSpan(text: 'Eco', style: style.copyWith(color: base)),
-        TextSpan(text: 'Plus', style: style.copyWith(color: accent ?? EcoColors.bloom)),
-      ])),
+      child: Text('ecoplus', style: TextStyle(fontFamily: kFont, fontSize: size, fontWeight: FontWeight.w700, letterSpacing: -0.5, height: 1, color: base)),
     );
   }
 }

@@ -26,3 +26,15 @@ build/
 **/android/.gradle/
 **/android/local.properties
 *.iml
+
+# Claude working folders and local settings
+Claude outputs/
+.claude/settings.local.json
+
+# Build leftovers and local uploads
+*.tsbuildinfo
+apps/backend/uploads/
+
+# Firebase config: each developer adds their own
+**/google-services.json
+**/GoogleService-Info.plist

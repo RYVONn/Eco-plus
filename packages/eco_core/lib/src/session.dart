@@ -14,6 +14,9 @@ class User {
       User(id: j['id'] as int, name: j['name'] as String, role: j['role'] as String, phone: j['phone'] as String?, email: j['email'] as String?);
 
   bool get isCustomer => role == 'citizen' || role == 'business';
+
+  /// Preview accounts have a negative id and never touch the API.
+  bool get isDemo => id < 0;
 }
 
 /// null = logged out. Loading while the saved token is being checked at start-up.
@@ -43,6 +46,20 @@ class SessionNotifier extends AsyncNotifier<User?> {
     state = AsyncData(User.fromJson(data['user'] as Map<String, dynamic>));
   }
 
+  /// Asks the server to text a 6-digit code to [phone] (international format, for example +201012345678).
+  Future<void> requestOtp(String phone) async {
+    await ref.read(dioProvider).post('/auth/otp/request', data: {'phone': phone});
+  }
+
+  /// Signs in with the texted code. A phone with no account becomes a new citizen. Returns true for a new account.
+  Future<bool> loginWithOtp(String phone, String code, {String? name}) async {
+    final res = await ref.read(dioProvider).post('/auth/otp/verify', data: {'phone': phone, 'code': code, if (name != null && name.isNotEmpty) 'name': name});
+    final data = res.data as Map<String, dynamic>;
+    await ref.read(tokenStoreProvider).save(data['accessToken'] as String, data['refreshToken'] as String);
+    state = AsyncData(User.fromJson(data['user'] as Map<String, dynamic>));
+    return data['isNew'] as bool? ?? false;
+  }
+
   /// Creates the account and logs in with the tokens the API returns.
   Future<void> register(Map<String, dynamic> body) async {
     final res = await ref.read(dioProvider).post('/auth/register', data: body);
@@ -50,6 +67,9 @@ class SessionNotifier extends AsyncNotifier<User?> {
     await ref.read(tokenStoreProvider).save(data['accessToken'] as String, data['refreshToken'] as String);
     state = AsyncData(User.fromJson(data['user'] as Map<String, dynamic>));
   }
+
+  /// Opens a role without a server, so every screen can be reviewed with sample data.
+  void demoLogin(String role, String name) => state = AsyncData(User(id: -1, name: name, role: role));
 
   Future<void> logout() async {
     final tokens = ref.read(tokenStoreProvider);

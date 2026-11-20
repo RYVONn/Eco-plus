@@ -17,7 +17,10 @@ import 'citizen_data.dart';
 const _materials = ['plastic', 'paper', 'cardboard', 'glass', 'aluminium', 'metal', 'mixed'];
 
 class ScanScreen extends ConsumerStatefulWidget {
-  const ScanScreen({super.key});
+  const ScanScreen({super.key, this.reward});
+
+  /// 'points' or 'cash'. Only businesses can pick cash; the server ignores it for citizens.
+  final String? reward;
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
@@ -101,7 +104,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         'lat': _where!.lat,
         'lng': _where!.lng,
       });
-      final req = await dio.post('/pickup-requests', data: {'scanId': (scan.data as Json)['id']});
+      final req = await dio.post('/pickup-requests', data: {'scanId': (scan.data as Json)['id'], 'reward': ?widget.reward});
       ref.invalidate(shipmentsProvider);
       ref.invalidate(unreadProvider);
       setState(() => _result = req.data as Json);
