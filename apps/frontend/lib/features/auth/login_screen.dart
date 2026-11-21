@@ -9,28 +9,6 @@ import '../../core/session.dart';
 import '../../widgets/brand.dart';
 import '../../widgets/motion.dart';
 
-/// Demo accounts exist only in a database filled by the development seed.
-const _demo = [
-  ('citizen@ecoplus.test', Icons.person_rounded, 'عميل', 'Citizen'),
-  ('driver@ecoplus.test', Icons.local_shipping_rounded, 'سائق', 'Driver'),
-  ('employee@ecoplus.test', Icons.scale_rounded, 'موظف', 'Employee'),
-  ('admin@ecoplus.test', Icons.admin_panel_settings_rounded, 'مشرف', 'Admin'),
-  ('factory@ecoplus.test', Icons.factory_rounded, 'مصنع', 'Factory'),
-];
-const _demoPassword = 'Test1234!';
-
-/// Preview accounts open a role with sample data and no server. Added here as each role app is built.
-const _preview = [
-  ('citizen', Icons.person_rounded, 'عميل (معاينة)', 'Citizen (preview)', 'سارة', 'Sara'),
-  ('business', Icons.storefront_rounded, 'بيزنس (معاينة)', 'Business (preview)', 'الكافيه المثال', 'Example Café'),
-  ('buyer', Icons.shopping_cart_rounded, 'مشتري (معاينة)', 'Buyer (preview)', 'مشتري المثال', 'Example Buyer'),
-  ('admin', Icons.admin_panel_settings_rounded, 'أدمن (معاينة)', 'Admin (preview)', 'الأدمن', 'Admin'),
-  ('client_portal', Icons.language_rounded, 'بوابة البيزنس (ويب)', 'Business portal (web)', 'الكافيه المثال', 'Example Café'),
-  ('factory_portal', Icons.factory_rounded, 'بوابة المصنع (ويب)', 'Factory portal (web)', 'مصنع المثال', 'Example Plant'),
-  ('driver', Icons.local_shipping_rounded, 'السواق', 'Driver', 'السواق 1', 'Driver 1'),
-  ('employee', Icons.scale_rounded, 'موظف المخزن', 'Warehouse employee', 'موظف 1', 'Employee 1'),
-];
-
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -140,36 +118,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 4),
                 Center(child: TextButton(onPressed: () => context.go('/phone'), child: Text(s.ar ? 'ادخل برقم الموبايل' : 'Sign in with phone'))),
                 Center(child: TextButton(onPressed: () => context.go('/register'), child: Text(s.noAccount))),
-                const SizedBox(height: 20),
-                Text(s.tryDemo, style: t.labelLarge?.copyWith(color: c.inkSoft)),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final d in _demo)
-                    ActionChip(
-                      avatar: Icon(d.$2, size: 18, color: c.primary),
-                      label: Text(s.ar ? d.$3 : d.$4),
-                      backgroundColor: c.surface,
-                      side: BorderSide(color: c.line),
-                      onPressed: () {
-                        _id.text = d.$1;
-                        _pw.text = _demoPassword;
-                        _submit();
-                      },
-                    ),
-                ]).fadeUp(index: 10),
-                const SizedBox(height: 16),
-                Text(s.ar ? 'معاينة بدون سيرفر' : 'Preview without a server', style: t.labelLarge?.copyWith(color: c.inkSoft)),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final p in _preview)
-                    ActionChip(
-                      avatar: Icon(p.$2, size: 18, color: c.primary),
-                      label: Text(s.ar ? p.$3 : p.$4),
-                      backgroundColor: c.surface,
-                      side: BorderSide(color: c.line),
-                      onPressed: () => ref.read(sessionProvider.notifier).demoLogin(p.$1, s.ar ? p.$5 : p.$6),
-                    ),
-                ]),
               ]),
             ),
           ),
