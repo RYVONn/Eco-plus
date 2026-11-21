@@ -6,12 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../router.dart';
 import '../strings.dart';
 
-const _demo = [
-  ('admin@ecoplus.test', Icons.admin_panel_settings_rounded, 'مشرف', 'Admin'),
-  ('factory@ecoplus.test', Icons.factory_rounded, 'مصنع', 'Factory'),
-  ('employee@ecoplus.test', Icons.scale_rounded, 'موظف', 'Employee'),
-];
-
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
   @override
@@ -81,23 +75,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ],
             const SizedBox(height: 20),
             FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)) : Text(t.login)).fadeUp(index: 5),
-            const SizedBox(height: 24),
-            Text(t.demo, style: tt.labelLarge?.copyWith(color: c.inkSoft)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final d in _demo)
-                ActionChip(
-                  avatar: Icon(d.$2, size: 18, color: c.primary),
-                  label: Text(t.ar ? d.$3 : d.$4),
-                  backgroundColor: c.surface,
-                  side: BorderSide(color: c.line),
-                  onPressed: () {
-                    _id.text = d.$1;
-                    _pw.text = 'Test1234!';
-                    _submit();
-                  },
-                ),
-            ]).fadeUp(index: 6),
           ]),
         ),
       ),

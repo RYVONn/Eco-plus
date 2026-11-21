@@ -6,7 +6,7 @@ import 'package:ecoplus_app/app/theme.dart';
 import 'package:ecoplus_app/features/auth/login_screen.dart';
 
 void main() {
-  testWidgets('login screen shows the form and demo accounts in Arabic, then English', (tester) async {
+  testWidgets('login screen shows the form and no demo accounts, in Arabic then English', (tester) async {
     await tester.pumpWidget(ProviderScope(
       child: Consumer(builder: (context, ref, _) {
         final ar = ref.watch(arabicProvider);
@@ -20,12 +20,12 @@ void main() {
     await tester.pump(const Duration(seconds: 5)); // let the entrance animations finish
 
     expect(find.text('تسجيل الدخول'), findsOneWidget);
-    expect(find.text('عميل'), findsOneWidget);
+    expect(find.text('جرّب بحساب تجريبي'), findsNothing);
 
     await tester.tap(find.text('English'));
     await tester.pump(const Duration(seconds: 5));
     expect(find.text('Log in'), findsOneWidget);
-    expect(find.text('Citizen'), findsOneWidget);
+    expect(find.text('Try a demo account'), findsNothing);
   });
 
   test('status labels exist in both languages', () {

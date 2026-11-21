@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('login page shows the form and demo accounts in English', (tester) async {
+  testWidgets('login page shows the form and no demo accounts', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 800);
     addTearDown(tester.view.reset);
@@ -16,8 +16,8 @@ void main() {
     ));
     await tester.pump(const Duration(seconds: 5));
     expect(find.text('Log in'), findsWidgets);
-    expect(find.text('Admin'), findsOneWidget);
-    expect(find.text('Factory'), findsOneWidget);
+    expect(find.text('Try a demo account'), findsNothing);
+    expect(find.text('Admin'), findsNothing);
   });
 
   test('every status has a label in both languages', () {
